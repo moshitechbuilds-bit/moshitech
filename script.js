@@ -1,3 +1,62 @@
+// Hero Video Optimization - Load video efficiently with mobile support
+const heroVideo = document.getElementById("hero-video");
+if (heroVideo) {
+  // Detect mobile devices
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  // Mobile devices use "metadata" preload to save bandwidth
+  // Desktop uses "auto" for better experience
+  heroVideo.preload = isMobile ? "metadata" : "auto";
+  
+  // Show video once it's loaded enough to play
+  const showVideo = () => {
+    if (heroVideo.readyState >= 3) { // HAVE_FUTURE_DATA
+      heroVideo.classList.add("loaded");
+      const playPromise = heroVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Autoplay failed (common on mobile), but video is ready
+          heroVideo.classList.add("loaded");
+        });
+      }
+    }
+  };
+  
+  // Multiple loading strategies
+  if (heroVideo.readyState >= 3) {
+    showVideo();
+  } else {
+    heroVideo.addEventListener("canplaythrough", showVideo, { once: true });
+    heroVideo.addEventListener("loadeddata", showVideo, { once: true });
+    heroVideo.addEventListener("progress", () => {
+      if (heroVideo.readyState >= 3) {
+        showVideo();
+      }
+    }, { once: true });
+  }
+  
+  // Fallback: show after delay (shorter on mobile)
+  setTimeout(() => {
+    heroVideo.classList.add("loaded");
+    heroVideo.play().catch(() => {
+      // Autoplay blocked on mobile - this is normal
+    });
+  }, isMobile ? 300 : 500);
+  
+  // Ensure video plays when user interacts (important for mobile)
+  let userInteracted = false;
+  const enableVideo = () => {
+    if (!userInteracted) {
+      userInteracted = true;
+      heroVideo.play().catch(() => {});
+    }
+  };
+  
+  document.addEventListener("click", enableVideo, { once: true });
+  document.addEventListener("touchstart", enableVideo, { once: true });
+  document.addEventListener("scroll", enableVideo, { once: true });
+}
+
 // Navigation toggle
 const navToggle = document.querySelector(".nav-toggle");
 const navMenu = document.getElementById("nav-menu");
@@ -132,6 +191,18 @@ document.querySelectorAll("[data-animate]").forEach((el) => {
 
 // Animated counter for statistics
 function animateCounter(element, target, duration = 2000) {
+  // Handle special cases like "99+" and "+"
+  const targetText = element.getAttribute("data-target");
+  if (targetText && targetText.includes("+")) {
+    const numValue = parseInt(targetText);
+    if (!isNaN(numValue)) {
+      target = numValue;
+    } else {
+      // If it's just "+", don't animate
+      return;
+    }
+  }
+  
   const start = 0;
   const increment = target / (duration / 16);
   let current = start;
@@ -139,7 +210,12 @@ function animateCounter(element, target, duration = 2000) {
   const timer = setInterval(() => {
     current += increment;
     if (current >= target) {
-      element.textContent = target;
+      // Preserve original format
+      if (targetText && targetText.includes("+")) {
+        element.textContent = targetText;
+      } else {
+        element.textContent = Math.floor(target);
+      }
       clearInterval(timer);
     } else {
       element.textContent = Math.floor(current);
