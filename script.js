@@ -1,60 +1,11 @@
-// Hero Video Optimization - Load video efficiently with mobile support
-const heroVideo = document.getElementById("hero-video");
-if (heroVideo) {
-  // Detect mobile devices
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  
-  // Mobile devices use "metadata" preload to save bandwidth
-  // Desktop uses "auto" for better experience
-  heroVideo.preload = isMobile ? "metadata" : "auto";
-  
-  // Show video once it's loaded enough to play
-  const showVideo = () => {
-    if (heroVideo.readyState >= 3) { // HAVE_FUTURE_DATA
-      heroVideo.classList.add("loaded");
-      const playPromise = heroVideo.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Autoplay failed (common on mobile), but video is ready
-          heroVideo.classList.add("loaded");
-        });
-      }
-    }
-  };
-  
-  // Multiple loading strategies
-  if (heroVideo.readyState >= 3) {
-    showVideo();
-  } else {
-    heroVideo.addEventListener("canplaythrough", showVideo, { once: true });
-    heroVideo.addEventListener("loadeddata", showVideo, { once: true });
-    heroVideo.addEventListener("progress", () => {
-      if (heroVideo.readyState >= 3) {
-        showVideo();
-      }
-    }, { once: true });
-  }
-  
-  // Fallback: show after delay (shorter on mobile)
-  setTimeout(() => {
-    heroVideo.classList.add("loaded");
-    heroVideo.play().catch(() => {
-      // Autoplay blocked on mobile - this is normal
-    });
-  }, isMobile ? 300 : 500);
-  
-  // Ensure video plays when user interacts (important for mobile)
-  let userInteracted = false;
-  const enableVideo = () => {
-    if (!userInteracted) {
-      userInteracted = true;
-      heroVideo.play().catch(() => {});
-    }
-  };
-  
-  document.addEventListener("click", enableVideo, { once: true });
-  document.addEventListener("touchstart", enableVideo, { once: true });
-  document.addEventListener("scroll", enableVideo, { once: true });
+// Portfolio Marquee - Preload images for smooth scrolling
+const portfolioCards = document.querySelectorAll('.portfolio-card img');
+if (portfolioCards.length > 0) {
+  // Preload all portfolio images for smooth scrolling
+  portfolioCards.forEach((img) => {
+    const imageLoader = new Image();
+    imageLoader.src = img.src;
+  });
 }
 
 // Navigation toggle

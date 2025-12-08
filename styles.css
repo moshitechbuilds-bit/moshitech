@@ -420,6 +420,10 @@ section {
   animation: fadeInRight 1s ease-out;
 }
 
+.hero__video-wrapper.portfolio-marquee-wrapper {
+  overflow: hidden;
+}
+
 .video-placeholder {
   position: absolute;
   top: 0;
@@ -437,6 +441,124 @@ section {
   height: 100%;
   background: linear-gradient(135deg, rgba(51, 208, 255, 0.2), rgba(143, 91, 255, 0.2));
   animation: shimmer 2s infinite;
+}
+
+/* Portfolio Marquee Styles */
+.portfolio-marquee-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.portfolio-marquee {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  height: 100%;
+  position: relative;
+}
+
+.marquee-column {
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.marquee-track {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  will-change: transform;
+}
+
+.marquee-left .marquee-track {
+  animation: scrollDown 30s linear infinite;
+}
+
+.marquee-right .marquee-track {
+  animation: scrollUp 30s linear infinite;
+}
+
+.portfolio-card {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  height: 200px;
+  border-radius: calc(var(--radius) / 1.5);
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--border);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  cursor: pointer;
+}
+
+.portfolio-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(51, 208, 255, 0.25);
+  border-color: rgba(51, 208, 255, 0.4);
+  z-index: 10;
+}
+
+.portfolio-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.portfolio-card:hover img {
+  transform: scale(1.05);
+}
+
+.portfolio-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(1, 3, 10, 0.95), transparent);
+  padding: 1rem;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.portfolio-card:hover .portfolio-overlay {
+  transform: translateY(0);
+}
+
+.portfolio-label {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: block;
+}
+
+/* Marquee Animations */
+@keyframes scrollDown {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes scrollUp {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Pause animation on hover */
+.portfolio-marquee-wrapper:hover .marquee-track {
+  animation-play-state: paused;
 }
 
 .hero__video-wrapper video {
@@ -684,6 +806,22 @@ section {
   
   .hero__video-wrapper {
     max-width: 100%;
+  }
+
+  .portfolio-marquee {
+    gap: 0.5rem;
+  }
+
+  .portfolio-card {
+    height: 160px;
+  }
+
+  .marquee-left .marquee-track {
+    animation-duration: 25s;
+  }
+
+  .marquee-right .marquee-track {
+    animation-duration: 25s;
   }
   
   .hero__stats {
