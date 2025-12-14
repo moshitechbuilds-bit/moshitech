@@ -160,8 +160,7 @@ function doPost(e) {
         folderUrl: dateFolder.getUrl(),
         message: 'File uploaded successfully'
       }))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', '*');
+      .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
     // Return error response
@@ -171,8 +170,7 @@ function doPost(e) {
         error: error.toString(),
         message: 'Failed to upload file'
       }))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', '*');
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -191,8 +189,7 @@ function doGet(e) {
           submissions: submissions,
           count: submissions.length
         }))
-        .setMimeType(ContentService.MimeType.JSON)
-        .setHeader('Access-Control-Allow-Origin', '*');
+        .setMimeType(ContentService.MimeType.JSON);
     } catch (error) {
       return ContentService
         .createTextOutput(JSON.stringify({
@@ -200,8 +197,7 @@ function doGet(e) {
           error: error.toString(),
           submissions: []
         }))
-        .setMimeType(ContentService.MimeType.JSON)
-        .setHeader('Access-Control-Allow-Origin', '*');
+        .setMimeType(ContentService.MimeType.JSON);
     }
   }
   
@@ -213,8 +209,7 @@ function doGet(e) {
       folderId: DRIVE_FOLDER_ID,
       usage: 'Send POST requests with file data to upload images or form submissions. Add ?action=getSubmissions to GET all submissions.'
     }))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', '*');
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
