@@ -1633,6 +1633,21 @@
                 // Save to localStorage for admin panel
                 saveSubmissionToStorage(submissionData);
 
+                // Trigger custom event to notify admin panel (if open in another tab)
+                // This works across tabs using localStorage
+                const updateEvent = new CustomEvent('newSubmission', {
+                    detail: { submissionId: submissionData.id || Date.now().toString() }
+                });
+                window.dispatchEvent(updateEvent);
+                
+                // Also trigger storage event manually for same-origin updates
+                // (storage event only fires in other tabs, not the same tab)
+                const event = new StorageEvent('storage', {
+                    key: 'moshitech_submissions',
+                    newValue: localStorage.getItem('moshitech_submissions')
+                });
+                window.dispatchEvent(event);
+
                 // Show success message
                 document.querySelector('.form-container form').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'block';

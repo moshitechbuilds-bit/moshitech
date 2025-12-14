@@ -286,6 +286,70 @@
             color: var(--text);
         }
 
+        .auto-refresh-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .auto-refresh-indicator.active {
+            border-color: var(--success);
+        }
+
+        .auto-refresh-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+            animation: pulse 2s infinite;
+        }
+
+        .auto-refresh-indicator.active .auto-refresh-dot {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .new-submission-notification {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            color: var(--bg-900);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 1001;
+            box-shadow: 0 4px 20px rgba(51, 208, 255, 0.3);
+            animation: slideDown 0.3s ease;
+            cursor: pointer;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
         .filter-bar {
             display: flex;
             gap: 1rem;
@@ -386,6 +450,15 @@
             <button class="btn btn-secondary" onclick="location.reload()">🔄 Refresh</button>
         </div>
 
+        <div class="auto-refresh-indicator" id="autoRefreshIndicator">
+            <div class="auto-refresh-dot"></div>
+            <span>Auto-refresh: <span id="refreshStatus">Active</span></span>
+        </div>
+
+        <div class="new-submission-notification" id="newSubmissionNotification" style="display: none;" onclick="scrollToNewSubmission()">
+            🎉 New submission received! Click to view
+        </div>
+
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-value" id="totalSubmissions">0</div>
@@ -442,12 +515,32 @@
     <script>
         let allSubmissions = [];
         let currentImageUrl = '';
+        let lastSubmissionCount = 0;
+        let autoRefreshInterval = null;
+        let newSubmissionIds = new Set();
 
         // Load submissions from localStorage
-        function loadSubmissions() {
+        function loadSubmissions(showNotification = false) {
             try {
                 const stored = localStorage.getItem('moshitech_submissions');
-                allSubmissions = stored ? JSON.parse(stored) : [];
+                const newSubmissions = stored ? JSON.parse(stored) : [];
+                
+                // Check for new submissions
+                if (showNotification && newSubmissions.length > lastSubmissionCount) {
+                    const newCount = newSubmissions.length - lastSubmissionCount;
+                    const newIds = newSubmissions
+                        .slice(0, newCount)
+                        .map(s => s.id)
+                        .filter(id => !newSubmissionIds.has(id));
+                    
+                    if (newIds.length > 0) {
+                        newIds.forEach(id => newSubmissionIds.add(id));
+                        showNewSubmissionNotification(newCount);
+                    }
+                }
+                
+                lastSubmissionCount = newSubmissions.length;
+                allSubmissions = newSubmissions;
                 
                 // Sort submissions
                 const sortBy = document.getElementById('sortSelect').value;
@@ -464,6 +557,86 @@
             } catch (error) {
                 console.error('Error loading submissions:', error);
                 allSubmissions = [];
+            }
+        }
+
+        // Show notification for new submissions
+        function showNewSubmissionNotification(count) {
+            const notification = document.getElementById('newSubmissionNotification');
+            if (notification) {
+                notification.textContent = `🎉 ${count} new submission${count > 1 ? 's' : ''} received! Click to view`;
+                notification.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Scroll to newest submission
+        function scrollToNewSubmission() {
+            const notification = document.getElementById('newSubmissionNotification');
+            if (notification) {
+                notification.style.display = 'none';
+            }
+            
+            // Ensure we're showing newest first
+            document.getElementById('sortSelect').value = 'newest';
+            loadSubmissions(false);
+            
+            // Scroll to top to see newest submission
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Highlight the first submission card
+            const firstCard = document.querySelector('.submission-card');
+            if (firstCard) {
+                firstCard.style.animation = 'none';
+                setTimeout(() => {
+                    firstCard.style.animation = 'fadeIn 0.5s ease';
+                    firstCard.style.borderColor = 'var(--cyan)';
+                    setTimeout(() => {
+                        firstCard.style.borderColor = '';
+                    }, 2000);
+                }, 10);
+            }
+        }
+
+        // Start auto-refresh
+        function startAutoRefresh() {
+            // Check every 3 seconds for new submissions
+            autoRefreshInterval = setInterval(() => {
+                loadSubmissions(true);
+            }, 3000);
+            
+            // Mark indicator as active
+            const indicator = document.getElementById('autoRefreshIndicator');
+            if (indicator) {
+                indicator.classList.add('active');
+            }
+        }
+
+        // Stop auto-refresh
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+            
+            const indicator = document.getElementById('autoRefreshIndicator');
+            if (indicator) {
+                indicator.classList.remove('active');
+            }
+        }
+
+        // Toggle auto-refresh
+        function toggleAutoRefresh() {
+            if (autoRefreshInterval) {
+                stopAutoRefresh();
+                document.getElementById('refreshStatus').textContent = 'Paused';
+            } else {
+                startAutoRefresh();
+                document.getElementById('refreshStatus').textContent = 'Active';
             }
         }
 
@@ -737,6 +910,40 @@
 
         // Initialize
         loadSubmissions();
+        
+        // Initialize submission count
+        lastSubmissionCount = allSubmissions.length;
+        
+        // Start auto-refresh
+        startAutoRefresh();
+        
+        // Allow clicking the indicator to toggle auto-refresh
+        document.getElementById('autoRefreshIndicator').addEventListener('click', toggleAutoRefresh);
+        document.getElementById('autoRefreshIndicator').style.cursor = 'pointer';
+        
+        // Also listen for storage events (works across tabs)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'moshitech_submissions') {
+                loadSubmissions(true);
+            }
+        });
+        
+        // Listen for custom newSubmission event (works in same tab)
+        window.addEventListener('newSubmission', function(e) {
+            loadSubmissions(true);
+        });
+        
+        // Check when page becomes visible (user switches back to tab)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                loadSubmissions(true);
+            }
+        });
+        
+        // Also check immediately when page gains focus
+        window.addEventListener('focus', function() {
+            loadSubmissions(true);
+        });
     </script>
 </body>
 </html>
