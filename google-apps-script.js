@@ -88,9 +88,12 @@ function doPost(e) {
           docId: docResult.docId,
           docUrl: docResult.docUrl,
           docName: docResult.docName,
+          docxId: docResult.docxId,
+          docxUrl: docResult.docxUrl,
+          docxName: docResult.docxName,
           sheetId: sheetResult.sheetId,
           sheetUrl: sheetResult.sheetUrl,
-          message: 'Document and spreadsheet updated successfully'
+          message: 'Document (Google Doc and DOCX) and spreadsheet updated successfully'
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -381,14 +384,23 @@ function createClientDocument(submissionData) {
     body.appendParagraph(`Submission ID: ${submissionData.id || 'N/A'}`);
     body.appendParagraph(`Generated: ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'MMMM dd, yyyy - hh:mm a')}`);
     
-    // Save and close
+    // Save and close Google Doc
     doc.saveAndClose();
+    
+    // Export as DOCX file
+    const docxBlob = docFile.getAs('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    const docxFileName = docName + '.docx';
+    const docxFile = dateFolder.createFile(docxBlob);
+    docxFile.setName(docxFileName);
     
     return {
       success: true,
       docId: doc.getId(),
       docUrl: doc.getUrl(),
-      docName: docName
+      docName: docName,
+      docxId: docxFile.getId(),
+      docxUrl: docxFile.getUrl(),
+      docxName: docxFileName
     };
   } catch (error) {
     Logger.log('Error creating document: ' + error.toString());
