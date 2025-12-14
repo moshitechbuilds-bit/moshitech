@@ -157,7 +157,8 @@ function doPost(e) {
         folderUrl: dateFolder.getUrl(),
         message: 'File uploaded successfully'
       }))
-      .setMimeType(ContentService.MimeType.JSON);
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*');
       
   } catch (error) {
     // Return error response
@@ -167,22 +168,50 @@ function doPost(e) {
         error: error.toString(),
         message: 'Failed to upload file'
       }))
-      .setMimeType(ContentService.MimeType.JSON);
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*');
   }
 }
 
 /**
  * This function handles GET requests (when someone visits the URL directly)
+ * Can also return submissions if ?action=getSubmissions
  */
 function doGet(e) {
+  // Check if requesting submissions
+  if (e.parameter && e.parameter.action === 'getSubmissions') {
+    try {
+      const submissions = getAllSubmissions();
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          submissions: submissions,
+          count: submissions.length
+        }))
+        .setMimeType(ContentService.MimeType.JSON)
+        .setHeader('Access-Control-Allow-Origin', '*');
+    } catch (error) {
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: false,
+          error: error.toString(),
+          submissions: []
+        }))
+        .setMimeType(ContentService.MimeType.JSON)
+        .setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }
+  
+  // Default response
   return ContentService
     .createTextOutput(JSON.stringify({
       success: true,
       message: 'Google Drive Upload Service is active',
       folderId: DRIVE_FOLDER_ID,
-      usage: 'Send POST requests with file data to upload images or form submissions'
+      usage: 'Send POST requests with file data to upload images or form submissions. Add ?action=getSubmissions to GET all submissions.'
     }))
-    .setMimeType(ContentService.MimeType.JSON);
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader('Access-Control-Allow-Origin', '*');
 }
 
 /**
