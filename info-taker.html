@@ -1633,6 +1633,26 @@
                 // Save to localStorage for admin panel
                 saveSubmissionToStorage(submissionData);
 
+                // Send submission data to Google Apps Script to create Google Doc
+                try {
+                    const formData_doc = new FormData();
+                    formData_doc.append('submissionData', JSON.stringify(submissionData));
+                    
+                    // Send to Google Apps Script (fire and forget - don't wait for response)
+                    fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: formData_doc
+                    }).then(response => {
+                        console.log('Form submission sent to Google Apps Script for document creation');
+                    }).catch(error => {
+                        console.error('Error sending submission to Google Apps Script:', error);
+                        // Don't block form submission if doc creation fails
+                    });
+                } catch (docError) {
+                    console.error('Error creating document:', docError);
+                    // Continue even if document creation fails
+                }
+
                 // Trigger custom event to notify admin panel (if open in another tab)
                 // This works across tabs using localStorage
                 const updateEvent = new CustomEvent('newSubmission', {

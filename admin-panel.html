@@ -519,28 +519,62 @@
         let autoRefreshInterval = null;
         let newSubmissionIds = new Set();
 
-        // Load submissions from localStorage
-        function loadSubmissions(showNotification = false) {
+        // Google Apps Script URL for getting submissions
+        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkRWcHFkm600pVOXwvn8FmmwBGCbSp1m6_SYIPXjdfsVV58R1vPCS_m2O8jA0aIwf_mA/exec";
+
+        // Load submissions from Google Sheets (works across all devices!)
+        async function loadSubmissions(showNotification = false) {
             try {
-                const stored = localStorage.getItem('moshitech_submissions');
-                const newSubmissions = stored ? JSON.parse(stored) : [];
-                
-                // Check for new submissions
-                if (showNotification && newSubmissions.length > lastSubmissionCount) {
-                    const newCount = newSubmissions.length - lastSubmissionCount;
-                    const newIds = newSubmissions
-                        .slice(0, newCount)
-                        .map(s => s.id)
-                        .filter(id => !newSubmissionIds.has(id));
+                // Try to load from Google Sheets first
+                try {
+                    const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getSubmissions`);
+                    const result = await response.json();
                     
-                    if (newIds.length > 0) {
-                        newIds.forEach(id => newSubmissionIds.add(id));
-                        showNewSubmissionNotification(newCount);
+                    if (result.success && result.submissions) {
+                        const newSubmissions = result.submissions;
+                        
+                        // Check for new submissions
+                        if (showNotification && newSubmissions.length > lastSubmissionCount) {
+                            const newCount = newSubmissions.length - lastSubmissionCount;
+                            showNewSubmissionNotification(newCount);
+                        }
+                        
+                        lastSubmissionCount = newSubmissions.length;
+                        allSubmissions = newSubmissions;
+                        
+                        // Also sync to localStorage as backup
+                        try {
+                            localStorage.setItem('moshitech_submissions', JSON.stringify(allSubmissions));
+                        } catch (e) {
+                            console.warn('Could not save to localStorage:', e);
+                        }
+                    } else {
+                        throw new Error('Failed to load from Google Sheets');
                     }
+                } catch (sheetError) {
+                    console.warn('Error loading from Google Sheets, trying localStorage:', sheetError);
+                    
+                    // Fallback to localStorage if Sheets fails
+                    const stored = localStorage.getItem('moshitech_submissions');
+                    const newSubmissions = stored ? JSON.parse(stored) : [];
+                    
+                    // Check for new submissions
+                    if (showNotification && newSubmissions.length > lastSubmissionCount) {
+                        const newCount = newSubmissions.length - lastSubmissionCount;
+                        const newIds = newSubmissions
+                            .slice(0, newCount)
+                            .map(s => s.id)
+                            .filter(id => !newSubmissionIds.has(id));
+                        
+                        if (newIds.length > 0) {
+                            newIds.forEach(id => newSubmissionIds.add(id));
+                            showNewSubmissionNotification(newCount);
+                        }
+                    }
+                    
+                    lastSubmissionCount = newSubmissions.length;
+                    allSubmissions = newSubmissions;
                 }
-                
-                lastSubmissionCount = newSubmissions.length;
-                allSubmissions = newSubmissions;
                 
                 // Sort submissions
                 const sortBy = document.getElementById('sortSelect').value;
@@ -604,10 +638,10 @@
 
         // Start auto-refresh
         function startAutoRefresh() {
-            // Check every 3 seconds for new submissions
+            // Check every 5 seconds for new submissions (reduced from 3 to save API calls)
             autoRefreshInterval = setInterval(() => {
                 loadSubmissions(true);
-            }, 3000);
+            }, 5000);
             
             // Mark indicator as active
             const indicator = document.getElementById('autoRefreshIndicator');
@@ -645,7 +679,12 @@
             document.getElementById('totalSubmissions').textContent = allSubmissions.length;
             
             const totalImages = allSubmissions.reduce((sum, sub) => {
-                return sum + (sub.uploadedFiles || []).filter(f => f.status === 'success').length;
+                // Handle both formats: uploadedFiles array or uploadedImages number
+                if (sub.uploadedFiles && Array.isArray(sub.uploadedFiles)) {
+                    return sum + sub.uploadedFiles.filter(f => f.status === 'success').length;
+                } else {
+                    return sum + (parseInt(sub.uploadedImages) || 0);
+                }
             }, 0);
             document.getElementById('totalImages').textContent = totalImages;
 
@@ -674,7 +713,11 @@
 
             list.innerHTML = submissionsToShow.map(submission => {
                 const date = new Date(submission.submittedAt).toLocaleString();
-                const images = (submission.uploadedFiles || []).filter(f => f.status === 'success' && f.cloudinaryUrl);
+                // Handle both formats: uploadedFiles array or uploadedImages number
+                const images = (submission.uploadedFiles && Array.isArray(submission.uploadedFiles)) 
+                    ? submission.uploadedFiles.filter(f => f.status === 'success' && f.cloudinaryUrl)
+                    : [];
+                const imageCount = images.length || (parseInt(submission.uploadedImages) || 0);
                 
                 return `
                     <div class="submission-card">
@@ -686,7 +729,7 @@
                             <div class="submission-actions">
                                 <button class="btn btn-primary" onclick="viewSubmission('${submission.id}')">View Details</button>
                                 <button class="btn btn-secondary" onclick="downloadSubmission('${submission.id}')">Download JSON</button>
-                                ${images.length > 0 ? `<button class="btn btn-primary" onclick="downloadSubmissionImages('${submission.id}')">Download Images</button>` : ''}
+                                ${imageCount > 0 ? `<button class="btn btn-primary" onclick="viewSubmissionImages('${submission.id}')">View Images</button>` : ''}
                             </div>
                         </div>
                         
@@ -705,11 +748,11 @@
                             </div>
                             <div class="info-section">
                                 <div class="info-label">Images</div>
-                                <div class="info-value">${images.length} uploaded</div>
+                                <div class="info-value">${imageCount} uploaded</div>
                             </div>
                         </div>
 
-                        ${images.length > 0 ? `
+                        ${imageCount > 0 && images.length > 0 ? `
                             <div class="images-section">
                                 <div class="info-label" style="margin-bottom: 0.5rem;">Uploaded Images</div>
                                 <div class="images-grid">
@@ -756,8 +799,13 @@
             const submission = allSubmissions.find(s => s.id === id);
             if (!submission) return;
 
-            const images = (submission.uploadedFiles || []).filter(f => f.status === 'success' && f.cloudinaryUrl);
-            const imagesList = images.map(img => `${img.name}: ${img.cloudinaryUrl}`).join('\n');
+            const images = (submission.uploadedFiles && Array.isArray(submission.uploadedFiles))
+                ? submission.uploadedFiles.filter(f => f.status === 'success' && f.cloudinaryUrl)
+                : [];
+            const imageCount = images.length || (parseInt(submission.uploadedImages) || 0);
+            const imagesList = images.length > 0 
+                ? images.map(img => `${img.name}: ${img.cloudinaryUrl}`).join('\n')
+                : `Check Google Drive folder for ${imageCount} uploaded image(s)`;
 
             alert(`Full Submission Details:\n\n` +
                   `Business Name: ${submission.businessName || 'N/A'}\n` +
@@ -769,7 +817,7 @@
                   `Color Preferences: ${submission.colorPreferences || 'N/A'}\n` +
                   `Pages: ${(submission.pages || []).join(', ') || 'N/A'}\n` +
                   `Features: ${(submission.features || []).join(', ') || 'N/A'}\n` +
-                  `Images: ${images.length}\n\n` +
+                  `Images: ${imageCount}\n\n` +
                   `For complete details, download the JSON file.`);
         }
 
@@ -788,24 +836,23 @@
             URL.revokeObjectURL(url);
         }
 
-        // Download all images from a submission
-        async function downloadSubmissionImages(id) {
+        // View submission images (opens Google Drive folder)
+        function viewSubmissionImages(id) {
             const submission = allSubmissions.find(s => s.id === id);
             if (!submission) return;
 
-            const images = (submission.uploadedFiles || []).filter(f => f.status === 'success' && f.cloudinaryUrl);
-            if (images.length === 0) {
-                alert('No images to download for this submission.');
+            const imageCount = (submission.uploadedFiles && Array.isArray(submission.uploadedFiles))
+                ? submission.uploadedFiles.filter(f => f.status === 'success').length
+                : (parseInt(submission.uploadedImages) || 0);
+
+            if (imageCount === 0) {
+                alert('No images found for this submission. Check Google Drive folder.');
                 return;
             }
 
-            for (const img of images) {
-                await downloadSingleImage(img.cloudinaryUrl, img.name);
-                // Small delay between downloads
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-
-            alert(`Downloaded ${images.length} image(s) from ${submission.businessName || 'this submission'}.`);
+            // Open Google Drive folder
+            const driveUrl = `https://drive.google.com/drive/folders/1ElU-xfvFtMspvjKBR5BUkyrsCM6OL2ZR`;
+            window.open(driveUrl, '_blank');
         }
 
         // Download single image
@@ -827,19 +874,12 @@
             }
         }
 
-        // Download all images from all submissions
+        // Download all images from all submissions (opens Google Drive)
         async function downloadAllImages() {
-            const allImages = [];
-            allSubmissions.forEach(sub => {
-                const images = (sub.uploadedFiles || []).filter(f => f.status === 'success' && f.cloudinaryUrl);
-                images.forEach(img => {
-                    allImages.push({
-                        url: img.cloudinaryUrl,
-                        name: `${sub.businessName || 'Client'}_${img.name}`,
-                        submissionId: sub.id
-                    });
-                });
-            });
+            alert('All images are stored in your Google Drive folder. Opening Google Drive...');
+            const driveUrl = `https://drive.google.com/drive/folders/1ElU-xfvFtMspvjKBR5BUkyrsCM6OL2ZR`;
+            window.open(driveUrl, '_blank');
+            return;
 
             if (allImages.length === 0) {
                 alert('No images to download.');
