@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en-PH">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <title>Admin Panel - Client Submissions | Moshi Tech</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/png" sizes="32x32" href="logos/favicon.png" />
+    <style>
+        :root {
+            --bg-900: #01030a;
+            --bg-800: #050b16;
+            --bg-700: #0b1424;
+            --card: rgba(14, 25, 42, 0.85);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f5f8ff;
+            --muted: rgba(245, 248, 255, 0.7);
+            --cyan: #33d0ff;
+            --purple: #8f5bff;
+            --blue: #0d9bff;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --radius: 18px;
+            --font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            color: var(--text);
+            background: var(--bg-900);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            font-family: var(--font);
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            color: var(--bg-900);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(51, 208, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-800);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-700);
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .submissions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .submission-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .submission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .submission-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .submission-date {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .submission-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .submission-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-section {
+            background: var(--bg-800);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .images-section {
+            margin-top: 1.5rem;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .image-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg-800);
+            border: 1px solid var(--border);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            padding: 0.5rem;
+            color: white;
+            font-size: 0.75rem;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .image-actions {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-icon:hover {
+            background: rgba(0,0,0,0.9);
+            transform: scale(1.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--muted);
+        }
+
+        .empty-state h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.75rem 1rem;
+            background: var(--bg-800);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: var(--font);
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 3px rgba(51, 208, 255, 0.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 2rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .submission-content {
+                grid-template-columns: 1fr;
+            }
+
+            .images-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Client Submissions Admin Panel</h1>
+                <p style="color: var(--muted); margin-top: 0.5rem;">Monitor all client website intake form submissions</p>
+            </div>
+            <button class="btn btn-secondary" onclick="location.reload()">🔄 Refresh</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalSubmissions">0</div>
+                <div class="stat-label">Total Submissions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalImages">0</div>
+                <div class="stat-label">Total Images</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="thisMonth">0</div>
+                <div class="stat-label">This Month</div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <input type="text" class="filter-input" id="searchInput" placeholder="Search by business name, category, or description..." onkeyup="filterSubmissions()" />
+            <select class="filter-input" id="sortSelect" onchange="loadSubmissions()" style="max-width: 200px;">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="name">Business Name (A-Z)</option>
+            </select>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="exportAllData()">📥 Export All Data (JSON)</button>
+            <button class="btn btn-primary" onclick="downloadAllImages()">🖼️ Download All Images</button>
+            <button class="btn btn-danger" onclick="confirmClearAll()">🗑️ Clear All Data</button>
+        </div>
+
+        <div class="submissions-list" id="submissionsList">
+            <div class="empty-state">
+                <h2>No submissions yet</h2>
+                <p>Client submissions will appear here once they submit the intake form.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Image Preview</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <img id="modalImage" src="" alt="Preview" style="width: 100%; border-radius: 12px;" />
+            <div style="margin-top: 1rem;">
+                <a id="modalImageLink" href="#" target="_blank" class="btn btn-primary" style="display: inline-block; text-decoration: none;">Open Full Size</a>
+                <button class="btn btn-secondary" onclick="downloadImageFromModal()">Download Image</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allSubmissions = [];
+        let currentImageUrl = '';
+
+        // Load submissions from localStorage
+        function loadSubmissions() {
+            try {
+                const stored = localStorage.getItem('moshitech_submissions');
+                allSubmissions = stored ? JSON.parse(stored) : [];
+                
+                // Sort submissions
+                const sortBy = document.getElementById('sortSelect').value;
+                if (sortBy === 'newest') {
+                    allSubmissions.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+                } else if (sortBy === 'oldest') {
+                    allSubmissions.sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+                } else if (sortBy === 'name') {
+                    allSubmissions.sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''));
+                }
+
+                updateStats();
+                displaySubmissions();
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+                allSubmissions = [];
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('totalSubmissions').textContent = allSubmissions.length;
+            
+            const totalImages = allSubmissions.reduce((sum, sub) => {
+                return sum + (sub.uploadedFiles || []).filter(f => f.status === 'success').length;
+            }, 0);
+            document.getElementById('totalImages').textContent = totalImages;
+
+            const thisMonth = allSubmissions.filter(sub => {
+                const subDate = new Date(sub.submittedAt);
+                const now = new Date();
+                return subDate.getMonth() === now.getMonth() && subDate.getFullYear() === now.getFullYear();
+            }).length;
+            document.getElementById('thisMonth').textContent = thisMonth;
+        }
+
+        // Display submissions
+        function displaySubmissions(filteredSubmissions = null) {
+            const list = document.getElementById('submissionsList');
+            const submissionsToShow = filteredSubmissions || allSubmissions;
+
+            if (submissionsToShow.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <h2>No submissions found</h2>
+                        <p>Try adjusting your search criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = submissionsToShow.map(submission => {
+                const date = new Date(submission.submittedAt).toLocaleString();
+                const images = (submission.uploadedFiles || []).filter(f => f.status === 'success' && f.cloudinaryUrl);
+                
+                return `
+                    <div class="submission-card">
+                        <div class="submission-header">
+                            <div>
+                                <div class="submission-title">${submission.businessName || 'Unnamed Business'}</div>
+                                <div class="submission-date">Submitted: ${date}</div>
+                            </div>
+                            <div class="submission-actions">
+                                <button class="btn btn-primary" onclick="viewSubmission('${submission.id}')">View Details</button>
+                                <button class="btn btn-secondary" onclick="downloadSubmission('${submission.id}')">Download JSON</button>
+                                ${images.length > 0 ? `<button class="btn btn-primary" onclick="downloadSubmissionImages('${submission.id}')">Download Images</button>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="submission-content">
+                            <div class="info-section">
+                                <div class="info-label">Category</div>
+                                <div class="info-value">${submission.category || 'N/A'}</div>
+                            </div>
+                            <div class="info-section">
+                                <div class="info-label">Main Goal</div>
+                                <div class="info-value">${submission.mainGoal || 'N/A'}</div>
+                            </div>
+                            <div class="info-section">
+                                <div class="info-label">Design Style</div>
+                                <div class="info-value">${submission.designStyle || 'N/A'}</div>
+                            </div>
+                            <div class="info-section">
+                                <div class="info-label">Images</div>
+                                <div class="info-value">${images.length} uploaded</div>
+                            </div>
+                        </div>
+
+                        ${images.length > 0 ? `
+                            <div class="images-section">
+                                <div class="info-label" style="margin-bottom: 0.5rem;">Uploaded Images</div>
+                                <div class="images-grid">
+                                    ${images.map(img => `
+                                        <div class="image-item">
+                                            <img src="${img.cloudinaryUrl}" alt="${img.name}" loading="lazy" />
+                                            <div class="image-overlay">${img.name}</div>
+                                            <div class="image-actions">
+                                                <button class="btn-icon" onclick="previewImage('${img.cloudinaryUrl}', '${img.name}')" title="Preview">👁️</button>
+                                                <button class="btn-icon" onclick="downloadSingleImage('${img.cloudinaryUrl}', '${img.name}')" title="Download">⬇️</button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Filter submissions
+        function filterSubmissions() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (!searchTerm) {
+                displaySubmissions();
+                return;
+            }
+
+            const filtered = allSubmissions.filter(sub => {
+                const businessName = (sub.businessName || '').toLowerCase();
+                const category = (sub.category || '').toLowerCase();
+                const description = (sub.businessDescription || '').toLowerCase();
+                return businessName.includes(searchTerm) || 
+                       category.includes(searchTerm) || 
+                       description.includes(searchTerm);
+            });
+
+            displaySubmissions(filtered);
+        }
+
+        // View full submission details
+        function viewSubmission(id) {
+            const submission = allSubmissions.find(s => s.id === id);
+            if (!submission) return;
+
+            const images = (submission.uploadedFiles || []).filter(f => f.status === 'success' && f.cloudinaryUrl);
+            const imagesList = images.map(img => `${img.name}: ${img.cloudinaryUrl}`).join('\n');
+
+            alert(`Full Submission Details:\n\n` +
+                  `Business Name: ${submission.businessName || 'N/A'}\n` +
+                  `Category: ${submission.category || 'N/A'}\n` +
+                  `Existing Website: ${submission.existingWebsite === 'yes' ? 'Yes' : 'No'}\n` +
+                  `Website URL: ${submission.websiteUrl || 'N/A'}\n` +
+                  `Main Goal: ${submission.mainGoal || 'N/A'}\n` +
+                  `Design Style: ${submission.designStyle || 'N/A'}\n` +
+                  `Color Preferences: ${submission.colorPreferences || 'N/A'}\n` +
+                  `Pages: ${(submission.pages || []).join(', ') || 'N/A'}\n` +
+                  `Features: ${(submission.features || []).join(', ') || 'N/A'}\n` +
+                  `Images: ${images.length}\n\n` +
+                  `For complete details, download the JSON file.`);
+        }
+
+        // Download single submission as JSON
+        function downloadSubmission(id) {
+            const submission = allSubmissions.find(s => s.id === id);
+            if (!submission) return;
+
+            const dataStr = JSON.stringify(submission, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `submission_${submission.businessName || 'unnamed'}_${id}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Download all images from a submission
+        async function downloadSubmissionImages(id) {
+            const submission = allSubmissions.find(s => s.id === id);
+            if (!submission) return;
+
+            const images = (submission.uploadedFiles || []).filter(f => f.status === 'success' && f.cloudinaryUrl);
+            if (images.length === 0) {
+                alert('No images to download for this submission.');
+                return;
+            }
+
+            for (const img of images) {
+                await downloadSingleImage(img.cloudinaryUrl, img.name);
+                // Small delay between downloads
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            alert(`Downloaded ${images.length} image(s) from ${submission.businessName || 'this submission'}.`);
+        }
+
+        // Download single image
+        async function downloadSingleImage(url, filename) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            } catch (error) {
+                console.error('Error downloading image:', error);
+                alert('Error downloading image. Please try again.');
+            }
+        }
+
+        // Download all images from all submissions
+        async function downloadAllImages() {
+            const allImages = [];
+            allSubmissions.forEach(sub => {
+                const images = (sub.uploadedFiles || []).filter(f => f.status === 'success' && f.cloudinaryUrl);
+                images.forEach(img => {
+                    allImages.push({
+                        url: img.cloudinaryUrl,
+                        name: `${sub.businessName || 'Client'}_${img.name}`,
+                        submissionId: sub.id
+                    });
+                });
+            });
+
+            if (allImages.length === 0) {
+                alert('No images to download.');
+                return;
+            }
+
+            if (!confirm(`This will download ${allImages.length} image(s). Continue?`)) {
+                return;
+            }
+
+            for (const img of allImages) {
+                await downloadSingleImage(img.url, img.name);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            alert(`Downloaded ${allImages.length} image(s).`);
+        }
+
+        // Export all data as JSON
+        function exportAllData() {
+            const dataStr = JSON.stringify(allSubmissions, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `moshitech_submissions_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear all data
+        function confirmClearAll() {
+            if (confirm('Are you sure you want to delete ALL submissions? This cannot be undone!')) {
+                if (confirm('This is your last chance. Delete all data?')) {
+                    localStorage.removeItem('moshitech_submissions');
+                    loadSubmissions();
+                    alert('All submissions have been deleted.');
+                }
+            }
+        }
+
+        // Preview image in modal
+        function previewImage(url, name) {
+            currentImageUrl = url;
+            document.getElementById('modalImage').src = url;
+            document.getElementById('modalImageLink').href = url;
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.remove('active');
+            currentImageUrl = '';
+        }
+
+        function downloadImageFromModal() {
+            if (currentImageUrl) {
+                const filename = currentImageUrl.split('/').pop().split('?')[0] || 'image.jpg';
+                downloadSingleImage(currentImageUrl, filename);
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        loadSubmissions();
+    </script>
+</body>
+</html>
