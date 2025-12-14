@@ -286,6 +286,65 @@
             color: var(--text);
         }
 
+        .login-container {
+            max-width: 400px;
+            margin: 10rem auto;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 3rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .login-container h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-container p {
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 1rem;
+            background: var(--bg-800);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .login-input:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 3px rgba(51, 208, 255, 0.1);
+        }
+
+        .login-error {
+            color: var(--error);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .login-error.show {
+            display: block;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
         .auto-refresh-indicator {
             position: fixed;
             top: 1rem;
@@ -441,13 +500,26 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Login Screen -->
+    <div class="login-container" id="loginContainer">
+        <h1>🔒 Admin Access</h1>
+        <p>Enter passcode to access admin panel</p>
+        <input type="password" id="passwordInput" class="login-input" placeholder="Enter passcode" onkeypress="handlePasswordEnter(event)" />
+        <div class="login-error" id="loginError">Incorrect passcode. Please try again.</div>
+        <button class="btn btn-primary" onclick="checkPassword()" style="width: 100%;">Login</button>
+    </div>
+
+    <!-- Admin Panel Content (Hidden until logged in) -->
+    <div class="container hidden" id="adminContent">
         <div class="header">
             <div>
                 <h1>Client Submissions Admin Panel</h1>
                 <p style="color: var(--muted); margin-top: 0.5rem;">Monitor all client website intake form submissions</p>
             </div>
-            <button class="btn btn-secondary" onclick="location.reload()">🔄 Refresh</button>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-secondary" onclick="logout()">🚪 Logout</button>
+                <button class="btn btn-secondary" onclick="location.reload()">🔄 Refresh</button>
+            </div>
         </div>
 
         <div class="auto-refresh-indicator" id="autoRefreshIndicator">
@@ -513,17 +585,120 @@
     </div>
 
     <script>
+        // ============================================
+        // ADMIN PASSWORD CONFIGURATION
+        // ============================================
+        // Change this to your desired passcode
+        const ADMIN_PASSWORD = "moshitech2024"; // CHANGE THIS TO YOUR PASSWORD
+        
+        // ============================================
+
         let allSubmissions = [];
         let currentImageUrl = '';
         let lastSubmissionCount = 0;
         let autoRefreshInterval = null;
         let newSubmissionIds = new Set();
+        let isAuthenticated = false;
 
         // Google Apps Script URL for getting submissions
         const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw7BFuAjfR8jWNpePP40vUyMRIviM9aD1SLnI8dxN4oFXOGJ7XfM4wdWztTBbm_04oeIQ/exec";
 
+        // Check if user is authenticated
+        function checkAuthentication() {
+            const authStatus = sessionStorage.getItem('admin_authenticated');
+            const authTime = sessionStorage.getItem('admin_auth_time');
+            const now = Date.now();
+            
+            // Check if authenticated and session is valid (24 hours)
+            if (authStatus === 'true' && authTime && (now - parseInt(authTime)) < 24 * 60 * 60 * 1000) {
+                isAuthenticated = true;
+                showAdminPanel();
+            } else {
+                // Session expired or not authenticated
+                sessionStorage.removeItem('admin_authenticated');
+                sessionStorage.removeItem('admin_auth_time');
+                showLoginScreen();
+            }
+        }
+
+        // Show login screen
+        function showLoginScreen() {
+            document.getElementById('loginContainer').classList.remove('hidden');
+            document.getElementById('adminContent').classList.add('hidden');
+            isAuthenticated = false;
+            // Stop auto-refresh if running
+            if (autoRefreshInterval) {
+                stopAutoRefresh();
+            }
+        }
+
+        // Show admin panel
+        function showAdminPanel() {
+            document.getElementById('loginContainer').classList.add('hidden');
+            document.getElementById('adminContent').classList.remove('hidden');
+            isAuthenticated = true;
+            // Start loading submissions
+            loadSubmissions();
+            startAutoRefresh();
+        }
+
+        // Check password
+        function checkPassword() {
+            const input = document.getElementById('passwordInput');
+            const password = input.value;
+            const errorDiv = document.getElementById('loginError');
+            
+            if (password === ADMIN_PASSWORD) {
+                // Correct password
+                sessionStorage.setItem('admin_authenticated', 'true');
+                sessionStorage.setItem('admin_auth_time', Date.now().toString());
+                errorDiv.classList.remove('show');
+                input.value = '';
+                showAdminPanel();
+            } else {
+                // Wrong password
+                errorDiv.classList.add('show');
+                input.value = '';
+                input.focus();
+                // Shake animation
+                input.style.animation = 'shake 0.5s';
+                setTimeout(() => {
+                    input.style.animation = '';
+                }, 500);
+            }
+        }
+
+        // Handle Enter key in password field
+        function handlePasswordEnter(event) {
+            if (event.key === 'Enter') {
+                checkPassword();
+            }
+        }
+
+        // Logout function
+        function logout() {
+            sessionStorage.removeItem('admin_authenticated');
+            sessionStorage.removeItem('admin_auth_time');
+            showLoginScreen();
+        }
+
+        // Add shake animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-10px); }
+                75% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
+
         // Load submissions from Google Sheets (works across all devices!)
         async function loadSubmissions(showNotification = false) {
+            // Only load if authenticated
+            if (!isAuthenticated) {
+                return;
+            }
             try {
                 // Try to load from Google Sheets first
                 try {
@@ -948,42 +1123,43 @@
             }
         });
 
-        // Initialize
-        loadSubmissions();
+        // Initialize - Check authentication first
+        checkAuthentication();
         
-        // Initialize submission count
-        lastSubmissionCount = allSubmissions.length;
-        
-        // Start auto-refresh
-        startAutoRefresh();
-        
-        // Allow clicking the indicator to toggle auto-refresh
-        document.getElementById('autoRefreshIndicator').addEventListener('click', toggleAutoRefresh);
-        document.getElementById('autoRefreshIndicator').style.cursor = 'pointer';
-        
-        // Also listen for storage events (works across tabs)
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'moshitech_submissions') {
+        // Initialize submission count (only if authenticated)
+        if (isAuthenticated) {
+            lastSubmissionCount = allSubmissions.length;
+            
+            // Allow clicking the indicator to toggle auto-refresh
+            document.getElementById('autoRefreshIndicator').addEventListener('click', toggleAutoRefresh);
+            document.getElementById('autoRefreshIndicator').style.cursor = 'pointer';
+            
+            // Also listen for storage events (works across tabs)
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'moshitech_submissions') {
+                    loadSubmissions(true);
+                }
+            });
+            
+            // Listen for custom newSubmission event (works in same tab)
+            window.addEventListener('newSubmission', function(e) {
                 loadSubmissions(true);
-            }
-        });
-        
-        // Listen for custom newSubmission event (works in same tab)
-        window.addEventListener('newSubmission', function(e) {
-            loadSubmissions(true);
-        });
-        
-        // Check when page becomes visible (user switches back to tab)
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
-                loadSubmissions(true);
-            }
-        });
-        
-        // Also check immediately when page gains focus
-        window.addEventListener('focus', function() {
-            loadSubmissions(true);
-        });
+            });
+            
+            // Check when page becomes visible (user switches back to tab)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden && isAuthenticated) {
+                    loadSubmissions(true);
+                }
+            });
+            
+            // Also check immediately when page gains focus
+            window.addEventListener('focus', function() {
+                if (isAuthenticated) {
+                    loadSubmissions(true);
+                }
+            });
+        }
     </script>
 </body>
 </html>
